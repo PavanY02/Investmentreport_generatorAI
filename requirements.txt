@@ -1,0 +1,7 @@
+pydantic-ai
+yfinance
+requests
+numpy
+pandas
+python-dotenv
+logfire
