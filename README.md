@@ -32,7 +32,7 @@ pip install -r requirements.txt
 
 ### 3️⃣ Set Up API Keys
 
-Create a `.env` file in the project directory and add your Google Gemini API key:
+Create a `.env` file in the project directory and add your Google Gemini API key or Groq API key:
 
 ```ini
 GOOGLE_API_KEY=your_gemini_api_key
