@@ -6,53 +6,59 @@ from pydantic_ai import Agent, RunContext
 from dotenv import load_dotenv
 from typing import List
 
-# ✅ Load Environment Variables
 load_dotenv()
 logfire.configure()
 
-# ✅ Groq AI Model Setup
+# Model Setup
 GROQ_API_KEY = os.getenv("GROQ_API_KE")
-llama_model = GroqModel('llama-3.3-70b-versatile', api_key=GROQ_API_KEY)
+llama_model = GroqModel("llama-3.3-70b-versatile", api_key=GROQ_API_KEY)
 
-# -------------------- 📌 Define System Prompt Output Model -------------------- #
+
+# Define System Prompt Output Model
 class SystemPrompt(BaseModel):
     """System prompt generated dynamically for the investment report agent."""
+
     prompt: str
     tags: List[str]
 
-# # -------------------- 📌 Define Investment Report Output Model -------------------- #
+
+# Define Investment Report Output Model
 # class InvestmentReport(BaseModel):
 #     """AI-generated Investment Report."""
 #     # report: List[str] = Field(..., description="List of AI-generated investment report sections.")
 
-# -------------------- 📌 Define Prompt Generator Agent -------------------- #
+# Define Prompt Generator Agent
 prompt_agent = Agent(
     model=llama_model,
     result_type=SystemPrompt,
-
-    system_prompt=("You an expert prompt writer. Create a system prompt to be used for an AI agent that will help a user based on the user's input. "
-                   "Must be very descriptive and include step by step instructions on how the agent can best answer user's question. Do not directly answer the question. "
-                   "Start with 'You are a helpful assistant specialized in...'. "
-                   "Include any relevant tags that will help the AI agent understand the context of the user's input. Add Disclosures at last")
+    system_prompt=(
+        "You an expert prompt writer. Create a system prompt to be used for an AI agent that will help a user based on the user's input. "
+        "Must be very descriptive and include step by step instructions on how the agent can best answer user's question. Do not directly answer the question. "
+        "Start with 'You are a helpful assistant specialized in...'. "
+        "Include any relevant tags that will help the AI agent understand the context of the user's input. Add Disclosures at last"
+    ),
 )
 
-# -------------------- 📌 Define Investment Report Agent -------------------- #
+# Define Investment Report Agent
 investment_agent = Agent(
     model=llama_model,
     # result_type=InvestmentReport,
-    system_prompt="Use the system prompt and tags provided to generate a helpful response to the user's info."
+    system_prompt="Use the system prompt and tags provided to generate a helpful response to the user's info.",
 )
 
-# -------------------- 📌 Dynamic System Prompt Injection -------------------- #
-@investment_agent.system_prompt  
+
+# Dynamic System Prompt Injection
+@investment_agent.system_prompt
 def add_prompt(ctx: RunContext[SystemPrompt]) -> str:
     return ctx.deps.prompt
+
 
 @investment_agent.system_prompt
 def add_tags(ctx: RunContext[SystemPrompt]) -> str:
     return f"Use these tags: {', '.join(ctx.deps.tags)}"
 
-# -------------------- 📌 Collect User Input -------------------- #
+
+# Collect User Input
 
 user_input = """I want an deatiled Investment report for Me - {Rahul ,Short term(3years) investor , Highrisktype , wealthgenerationfocus}"""
 
@@ -67,32 +73,30 @@ user_data = """Portfolio Details:
 """
 user_info = user_input + "\n\n" + user_data
 
-# ✅ Step 1: Generate Dynamic System Prompt
+# Step 1: Generate Dynamic System Prompt
 logfire.info("📝 Generating system prompt dynamically...")
 system_prompt = prompt_agent.run_sync(user_input).data
 
-# ✅ Save Generated Prompt to Markdown File
+# Save Generated Prompt to Markdown File
 prompt_filename = "prompt2.md"
 with open(prompt_filename, "w", encoding="utf-8") as prompt_file:
     prompt_file.write(f"# AI-Generated System Prompt\n\n")
     prompt_file.write(f"**Prompt:**\n\n{system_prompt.prompt}\n\n")
-    prompt_file.write(f"**Tags:** {', '.join(system_prompt.tags) if system_prompt.tags else 'No Tags'}\n")
+    prompt_file.write(
+        f"**Tags:** {', '.join(system_prompt.tags) if system_prompt.tags else 'No Tags'}\n"
+    )
 
 logfire.info(f"✅ System Prompt saved to {prompt_filename}")
 
-# ✅ Step 2: Use Generated Prompt to Generate Investment Report
+# Step 2: Use Generated Prompt to Generate Investment Report
 logfire.info("📊 Generating AI Investment Report...")
 investment_result = investment_agent.run_sync(user_info, deps=system_prompt)
 
-# ✅ Save Generated Investment Report to Markdown File
 
-# ✅ Save Generated Investment Report to Markdown File
+# Save Generated Investment Report to Markdown File
 report_filename = "report2.md"
 with open(report_filename, "w", encoding="utf-8") as report_file:
     report_file.write(f"# AI-Generated Investment Report\n\n")
     report_file.write(investment_result.data)  # Saving raw AI-generated text
 
 logfire.info(f"✅ Investment Report saved to {report_filename}")
-
-# ✅ Print Completion Message
-# print(f"✅ AI-generated investment report and system prompt saved as
